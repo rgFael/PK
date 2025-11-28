@@ -1,0 +1,2840 @@
+<!DOCTYPE html>
+
+<html lang="es">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Sistema de Descubrimiento de Pokémon</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <script>
+
+        tailwind.config = {
+
+            theme: {
+
+                extend: {
+
+                    fontFamily: {
+
+                        sans: ['Inter', 'sans-serif'],
+
+                    },
+
+                    colors: {
+
+                        'primary': '#e3342f', // Rojo Intenso
+
+                        'secondary': '#3490dc', // Azul Claro
+
+                        
+
+                        // Habilidades MALAS
+
+                        'bad-mala': '#fca5a5', 
+
+                        'bad-muymala': '#ef4444', 
+
+                        'bad-horrible': '#be123c', 
+
+                        'bad-horrorosa': '#7f1d1d', 
+
+                        'bad-destrozacarreras': '#000000', 
+
+                        // Habilidades BUENAS
+
+                        'good-common': '#d1d5db', 
+
+                        'good-special': '#3b82f6', 
+
+                        'good-raro': '#059669', 
+
+                        'good-elite': '#8b5cf6', 
+
+                        'good-legendary': '#f59e0b', 
+
+                    }
+
+                }
+
+            }
+
+        }
+
+    </script>
+
+    <style>
+
+        /* Clases de Estilo para Potencial Dinámico (Texto y SVG) */
+
+        .potential-color-neutral { color: #9ca3af; fill: #9ca3af; } 
+
+        .potential-color-1 { color: #525252; fill: #525252; }
+
+        .potential-color-2 { color: #3b82f6; fill: #3b82f6; }
+
+        .potential-color-3 { color: #10b981; fill: #10b981; }
+
+        .potential-color-4 { color: #8b5cf6; fill: #8b5cf6; }
+
+        .potential-color-5 { color: #f97316; fill: #f97316; }
+
+        .potential-color-6 { color: #f59e0b; fill: #f59e0b; }
+
+        .potential-color-7 { color: #fbbf24; fill: #fbbf24; filter: drop-shadow(0 0 8px rgba(251, 191, 36, 0.6)); }
+
+        body {
+
+            background-color: #1f2937; 
+
+            min-height: 100vh;
+
+            display: flex;
+
+            justify-content: center;
+
+            align-items: flex-start;
+
+            padding: 24px 12px;
+
+        }
+
+        .ability-card-container {
+
+            display: grid;
+
+            gap: 16px;
+
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+
+        }
+
+        
+
+        .probs-grid {
+
+            display: grid;
+
+            gap: 16px;
+
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+
+        }
+
+        
+
+        @keyframes float {
+
+            0% { transform: translateY(0px); }
+
+            50% { transform: translateY(-5px); }
+
+            100% { transform: translateY(0px); }
+
+        }
+
+        .animate-float {
+
+            animation: float 3s ease-in-out infinite;
+
+        }
+
+        .cursor-blink::after {
+
+            content: '|';
+
+            animation: blink 1s step-start infinite;
+
+        }
+
+        @keyframes blink {
+
+            50% { opacity: 0; }
+
+        }
+
+        .fade-in {
+
+            transition: opacity 1s ease-in-out;
+
+            opacity: 1;
+
+        }
+
+        .opacity-0 {
+
+            opacity: 0;
+
+        }
+
+    </style>
+
+</head>
+
+<body>
+
+    <div class="w-full max-w-4xl bg-gray-100 p-4 md:p-8 rounded-3xl shadow-2xl">
+
+        
+
+        <!-- NAVEGACIÓN -->
+
+        <div class="flex border-b border-gray-300 mb-6 overflow-x-auto whitespace-nowrap">
+
+            <button id="tab-discovery" class="px-4 py-2 text-lg font-bold text-primary transition duration-150 outline-none">
+
+                Descubrimiento
+
+            </button>
+
+            <button id="tab-management" class="px-4 py-2 text-lg font-bold text-gray-500 hover:text-gray-800 transition duration-150 outline-none">
+
+                Gestión de Habilidades
+
+            </button>
+
+            <button id="tab-probabilities" class="px-4 py-2 text-lg font-bold text-gray-500 hover:text-gray-800 transition duration-150 outline-none">
+
+                Ajustes Probabilidades
+
+            </button>
+
+        </div>
+
+        <!-- VISTA DE DESCUBRIMIENTO -->
+
+        <div id="view-discovery">
+
+            
+
+            <header class="text-center mb-10">
+
+                <h1 class="text-4xl md:text-5xl font-extrabold text-primary mb-2 tracking-tight">
+
+                    DESCUBRIR POKÉMON
+
+                </h1>
+
+                <p class="text-gray-500 font-medium">Analiza el potencial y habilidades ocultas</p>
+
+            </header>
+
+            <!-- SELECCIÓN DE CATEGORÍA DEL POKÉMON -->
+
+            <div class="mb-8 max-w-md mx-auto">
+
+                <label class="block text-gray-700 text-sm font-bold mb-2 text-center" for="pokemon-category-select">
+
+                    Categoría del Pokémon a descubrir:
+
+                </label>
+
+                <div class="relative">
+
+                    <select id="pokemon-category-select" class="block appearance-none w-full bg-white border border-gray-400 hover:border-gray-500 px-4 py-3 pr-8 rounded-xl shadow leading-tight focus:outline-none focus:shadow-outline text-lg text-center font-bold text-gray-800">
+
+                        <option value="Común">Común</option>
+
+                        <option value="Especial">Especial</option>
+
+                        <option value="Raro">Raro</option>
+
+                        <option value="Élite">Élite</option>
+
+                        <option value="Legendario">Legendario</option>
+
+                    </select>
+
+                    <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
+
+                        <svg class="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
+
+                    </div>
+
+                </div>
+
+                <p class="text-xs text-gray-500 text-center mt-2">Las probabilidades cambiarán según la categoría seleccionada.</p>
+
+            </div>
+
+            <!-- SELECCIÓN DE MODO -->
+
+            <div class="flex justify-center gap-8 mb-6">
+
+                <label class="inline-flex items-center cursor-pointer group">
+
+                    <input type="radio" name="display-mode" value="fast" class="peer hidden" checked>
+
+                    <div class="w-6 h-6 border-2 border-gray-400 rounded-full flex items-center justify-center peer-checked:border-primary peer-checked:bg-primary transition-all">
+
+                        <div class="w-2.5 h-2.5 bg-white rounded-full opacity-0 peer-checked:opacity-100"></div>
+
+                    </div>
+
+                    <span class="ml-2 text-lg font-bold text-gray-600 group-hover:text-gray-800 peer-checked:text-primary transition-colors">RÁPIDO</span>
+
+                </label>
+
+                <label class="inline-flex items-center cursor-pointer group">
+
+                    <input type="radio" name="display-mode" value="animation" class="peer hidden">
+
+                    <div class="w-6 h-6 border-2 border-gray-400 rounded-full flex items-center justify-center peer-checked:border-secondary peer-checked:bg-secondary transition-all">
+
+                        <div class="w-2.5 h-2.5 bg-white rounded-full opacity-0 peer-checked:opacity-100"></div>
+
+                    </div>
+
+                    <span class="ml-2 text-lg font-bold text-gray-600 group-hover:text-gray-800 peer-checked:text-secondary transition-colors">ANIMACIÓN</span>
+
+                </label>
+
+            </div>
+
+            <div class="flex flex-col sm:flex-row gap-4 mb-10 justify-center">
+
+                <button id="generate-button" class="w-full sm:w-auto px-10 py-4 bg-primary text-white font-black rounded-xl shadow-xl hover:bg-red-600 transition duration-200 transform hover:scale-[1.03] text-2xl tracking-wider disabled:opacity-50 disabled:cursor-not-allowed">
+
+                    MANDAR VISOR
+
+                </button>
+
+            </div>
+
+            <div id="results-container" class="mt-8 pt-8 border-t-4 border-gray-300 hidden">
+
+                <!-- TARJETA DE POTENCIAL -->
+
+                <div id="potential-card" class="bg-white p-8 rounded-3xl shadow-xl mb-8 text-center border border-gray-100 relative overflow-hidden">
+
+                    <p class="text-lg font-semibold text-gray-500 uppercase tracking-widest relative z-10">
+
+                        POTENCIAL MÁXIMO (BASE 100)
+
+                    </p>
+
+                    
+
+                    <div class="flex flex-col items-center justify-center mt-6 relative z-10">
+
+                        <div id="potential-icon-container" class="mb-4 w-28 h-28 flex items-center justify-center animate-float potential-color-neutral">
+
+                            <!-- El SVG se inyectará aquí -->
+
+                            <svg xmlns="http://www.w3.org/2000/svg" class="w-full h-full" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z" opacity="0.5"/></svg>
+
+                        </div>
+
+                        <p class="text-7xl md:text-8xl font-black leading-none text-gray-300" id="trainer-potential">
+
+                            ??
+
+                        </p>
+
+                    </div>
+
+                    <div id="potential-text-wrapper" class="transition-opacity duration-1000 opacity-100">
+
+                        <p class="text-2xl md:text-3xl font-extrabold mt-4 mb-2 relative z-10 text-gray-400" id="potential-phrase">
+
+                            ESPERANDO RESULTADOS...
+
+                        </p>
+
+                        <p class="text-sm text-gray-400 mt-2" id="debug-info">
+
+                        </p>
+
+                    </div>
+
+                </div>
+
+                <div class="text-center mb-6">
+
+                    <span class="text-2xl font-extrabold text-secondary inline-block p-3 rounded-xl bg-secondary bg-opacity-10" id="ability-count-display">
+
+                        (0 Habilidades Descubiertas)
+
+                    </span>
+
+                    <span id="ability-count" class="hidden">0</span>
+
+                </div>
+
+                
+
+                <div id="abilities-list" class="ability-card-container">
+
+                    <p class="text-gray-500 italic text-center p-4 col-span-full" id="no-abilities">
+
+                        Este Pokémon no manifestó habilidades innatas.
+
+                    </p>
+
+                </div>
+
+            </div>
+
+        </div>
+
+        
+
+        <!-- VISTA DE GESTIÓN -->
+
+        <div id="view-management" class="hidden">
+
+            <h2 class="text-3xl font-extrabold text-gray-800 mb-6 border-b-2 pb-2 flex justify-between items-center">
+
+                Gestión de Habilidades
+
+                <span class="text-xl font-bold text-secondary" id="managed-ability-count">0</span>
+
+            </h2>
+
+            <button id="add-ability-btn" class="mb-6 px-6 py-3 bg-secondary text-white font-bold rounded-xl shadow-lg hover:bg-blue-600 transition duration-200 flex items-center">
+
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+
+                    <path fill-rule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clip-rule="evenodd" />
+
+                </svg>
+
+                Añadir Nueva Habilidad
+
+            </button>
+
+            <div id="managed-abilities-list" class="ability-card-container">
+
+            </div>
+
+        </div>
+
+        
+
+        <!-- VISTA DE PROBABILIDADES -->
+
+        <div id="view-probabilities" class="hidden">
+
+            <h2 class="text-3xl font-extrabold text-gray-800 mb-6 border-b-2 pb-2">
+
+                ⚙️ Configuración Global por Categoría
+
+            </h2>
+
+            
+
+            <!-- SELECTOR DE CONFIGURACIÓN -->
+
+            <div class="bg-blue-50 p-6 rounded-xl border-2 border-blue-200 mb-6 text-center">
+
+                <label for="config-category-selector" class="block text-xl font-bold text-blue-900 mb-2">
+
+                    Editando probabilidades para la Categoría:
+
+                </label>
+
+                <select id="config-category-selector" class="block mx-auto w-full md:w-1/2 bg-white border border-blue-300 text-blue-900 text-lg rounded-lg focus:ring-blue-500 focus:border-blue-500 p-2.5 font-bold">
+
+                    <option value="Común">Común</option>
+
+                    <option value="Especial">Especial</option>
+
+                    <option value="Raro">Raro</option>
+
+                    <option value="Élite">Élite</option>
+
+                    <option value="Legendario">Legendario</option>
+
+                </select>
+
+                <p class="text-sm text-blue-600 mt-2">Asegúrate de guardar los cambios antes de cambiar de categoría.</p>
+
+            </div>
+
+            <form id="prob-config-form" class="space-y-6">
+
+                
+
+                <!-- CONTROL DE VELOCIDAD (GLOBAL) -->
+
+                <div class="bg-white p-4 rounded-xl shadow-md border-l-4 border-indigo-500">
+
+                    <h3 class="text-xl font-bold text-gray-800 mb-3">Velocidad de Animación (Global)</h3>
+
+                    <div class="flex flex-col">
+
+                        <input type="range" id="anim-speed" min="1" max="10" step="1" value="3" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-indigo-600">
+
+                        <p class="text-center mt-2 text-indigo-600 font-bold" id="anim-speed-display">Velocidad: X3</p>
+
+                    </div>
+
+                </div>
+
+                <div class="bg-white p-4 rounded-xl shadow-md border-l-4 border-primary">
+
+                    <h3 class="text-xl font-bold text-gray-800 mb-3">Rango de Potencial Inicial</h3>
+
+                    <div class="flex space-x-4">
+
+                        <div class="flex-1">
+
+                            <label for="pot-min" class="block text-sm font-medium text-gray-700">Mínimo:</label>
+
+                            <input type="number" id="pot-min" min="0" max="100" required class="mt-1 block w-full border-gray-300 rounded-lg shadow-sm focus:ring-secondary focus:border-secondary p-2 text-lg">
+
+                        </div>
+
+                        <div class="flex-1">
+
+                            <label for="pot-max" class="block text-sm font-medium text-gray-700">Máximo:</label>
+
+                            <input type="number" id="pot-max" min="0" max="100" required class="mt-1 block w-full border-gray-300 rounded-lg shadow-sm focus:ring-secondary focus:border-secondary p-2 text-lg">
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+                <div class="bg-white p-4 rounded-xl shadow-md border-l-4 border-secondary">
+
+                    <h3 class="text-xl font-bold text-gray-800 mb-3">Probabilidad de Habilidad por Rollo (%)</h3>
+
+                    <div class="flex space-x-3">
+
+                        <div class="flex-1">
+
+                            <label for="roll-1" class="block text-xs font-medium text-gray-700">1er Habilidad:</label>
+
+                            <input type="number" id="roll-1" min="0" max="100" required class="mt-1 block w-full border-gray-300 rounded-lg shadow-sm focus:ring-secondary focus:border-secondary p-2">
+
+                        </div>
+
+                        <div class="flex-1">
+
+                            <label for="roll-2" class="block text-xs font-medium text-gray-700">2da Habilidad:</label>
+
+                            <input type="number" id="roll-2" min="0" max="100" required class="mt-1 block w-full border-gray-300 rounded-lg shadow-sm focus:ring-secondary focus:border-secondary p-2">
+
+                        </div>
+
+                        <div class="flex-1">
+
+                            <label for="roll-3" class="block text-xs font-medium text-gray-700">3ra Habilidad:</label>
+
+                            <input type="number" id="roll-3" min="0" max="100" required class="mt-1 block w-full border-gray-300 rounded-lg shadow-sm focus:ring-secondary focus:border-secondary p-2">
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+                
+
+                <div class="bg-white p-4 rounded-xl shadow-md border-l-4 border-green-500">
+
+                    <h3 class="text-xl font-bold text-gray-800 mb-3">Distribución de Calidad</h3>
+
+                     <div class="flex space-x-4">
+
+                        <div class="flex-1">
+
+                            <label for="quality-good" class="block text-sm font-medium text-gray-700">Prob. Habilidad Buena (%):</label>
+
+                            <input type="number" id="quality-good" min="0" max="100" required class="mt-1 block w-full border-gray-300 rounded-lg shadow-sm focus:ring-secondary focus:border-secondary p-2 text-lg">
+
+                        </div>
+
+                        <div class="flex-1">
+
+                            <label for="quality-bad" class="block text-sm font-medium text-gray-700">Prob. Habilidad Mala (%):</label>
+
+                            <input type="number" id="quality-bad" min="0" max="100" required class="mt-1 block w-full border-gray-300 rounded-lg shadow-sm focus:ring-secondary focus:border-secondary p-2 text-lg">
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+                <div class="bg-white p-4 rounded-xl shadow-md border-l-4 border-good-legendary">
+
+                    <h3 class="text-xl font-bold text-gray-800 mb-3">Distribución de Tiers BUENOS (Suma: <span id="good-tiers-sum">0</span>/100%)</h3>
+
+                    <div id="good-tiers-inputs" class="probs-grid">
+
+                        <!-- Inputs generados por JS -->
+
+                    </div>
+
+                </div>
+
+                <div class="bg-white p-4 rounded-xl shadow-md border-l-4 border-bad-destrozacarreras">
+
+                    <h3 class="text-xl font-bold text-gray-800 mb-3">Distribución de Tiers MALOS (Suma: <span id="bad-tiers-sum">0</span>/100%)</h3>
+
+                    <div id="bad-tiers-inputs" class="probs-grid">
+
+                         <!-- Inputs generados por JS -->
+
+                    </div>
+
+                </div>
+
+                
+
+                <!-- BOTÓN CENTRADO -->
+
+                <div class="flex justify-center">
+
+                    <button type="submit" class="px-8 py-3 bg-primary text-white font-black rounded-xl shadow-xl hover:bg-red-600 transition duration-200 transform hover:scale-[1.03] text-xl tracking-wider">
+
+                        Guardar Configuración para <span id="save-btn-category-name" class="uppercase">Común</span>
+
+                    </button>
+
+                </div>
+
+            </form>
+
+        </div>
+
+        <div id="message-area" class="mt-6 p-4 text-sm font-medium rounded-lg text-center hidden" role="alert">
+
+        </div>
+
+    </div>
+
+    
+
+    <!-- MODALES -->
+
+    <div id="edit-modal" class="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 p-4 hidden">
+
+        <div class="bg-white p-6 rounded-xl shadow-2xl max-w-lg w-full transform transition-all scale-100">
+
+            <h3 class="text-2xl font-bold mb-4 text-primary" id="modal-title">Editar Habilidad</h3>
+
+            <form id="edit-ability-form">
+
+                <input type="hidden" id="edit-ability-id">
+
+                <div class="mb-4">
+
+                    <label for="edit-name" class="block text-sm font-medium text-gray-700">Nombre:</label>
+
+                    <input type="text" id="edit-name" required class="mt-1 block w-full border-gray-300 rounded-lg shadow-sm focus:ring-primary focus:border-primary p-2">
+
+                </div>
+
+                <div class="mb-4">
+
+                    <label for="edit-tier" class="block text-sm font-medium text-gray-700">Categoría (Tier):</label>
+
+                    <select id="edit-tier" required class="mt-1 block w-full border-gray-300 rounded-lg shadow-sm focus:ring-primary focus:border-primary p-2">
+
+                        <!-- Options generadas por JS -->
+
+                    </select>
+
+                </div>
+
+                <div class="mb-4">
+
+                    <label for="edit-description" class="block text-sm font-medium text-gray-700">Descripción:</label>
+
+                    <textarea id="edit-description" rows="4" required class="mt-1 block w-full border-gray-300 rounded-lg shadow-sm focus:ring-primary focus:border-primary p-2"></textarea>
+
+                </div>
+
+                <div class="flex justify-end space-x-3 mt-6">
+
+                    <button type="button" id="modal-cancel" class="px-4 py-2 bg-gray-200 text-gray-700 font-medium rounded-lg hover:bg-gray-300 transition">
+
+                        Cancelar
+
+                    </button>
+
+                    <button type="submit" class="px-4 py-2 bg-secondary text-white font-medium rounded-lg hover:bg-blue-600 transition">
+
+                        Guardar Cambios
+
+                    </button>
+
+                </div>
+
+            </form>
+
+        </div>
+
+    </div>
+
+    
+
+    <div id="confirm-modal" class="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 p-4 hidden">
+
+        <div class="bg-white p-6 rounded-xl shadow-2xl max-w-sm w-full transform transition-all scale-100">
+
+            <h3 class="text-2xl font-bold mb-3 text-red-600">Confirmar Eliminación</h3>
+
+            <p id="confirm-message" class="text-gray-700 mb-6">¿Estás seguro de que quieres eliminar esta habilidad?</p>
+
+            <div class="flex justify-end space-x-3 mt-6">
+
+                <button type="button" id="confirm-cancel" class="px-4 py-2 bg-gray-200 text-gray-700 font-medium rounded-lg hover:bg-gray-300 transition">
+
+                    Cancelar
+
+                </button>
+
+                <button type="button" id="confirm-ok" class="px-4 py-2 bg-red-600 text-white font-medium rounded-lg hover:bg-red-700 transition">
+
+                    Eliminar
+
+                </button>
+
+            </div>
+
+        </div>
+
+    </div>
+
+    <script>
+
+        // --- CONSTANTES DE LOCALSTORAGE ---
+
+        const LS_KEYS = {
+
+            CONFIG: 'pokemonApp_config_v2', // Version bumped for new structure
+
+            ABILITIES: 'pokemonApp_abilities_v2'
+
+        };
+
+        // --- FUNCIÓN DE POTENCIAL "FILTROS EN CASCADA" ---
+
+        function getFilteredPotential(min, max) {
+
+            let info = ""; 
+
+            let initialRoll = Math.floor(Math.random() * (max - min + 1)) + min;
+
+            if (initialRoll < 70) return { value: initialRoll, info: "Tirada inicial baja" };
+
+            let passFilter70 = Math.random() < 0.5;
+
+            if (!passFilter70) {
+
+                let safeMin = min < 70 ? min : 1; 
+
+                let newValue = Math.floor(Math.random() * (70 - safeMin + 1)) + safeMin;
+
+                return { value: newValue, info: "Falló filtro 70 (Rebote)" };
+
+            }
+
+            let roll70s = Math.floor(Math.random() * (80 - 70 + 1)) + 70;
+
+            if (roll70s < 80) return { value: roll70s, info: "Rango 70-79" };
+
+            let passFilter80 = Math.random() < 0.5;
+
+            if (!passFilter80) {
+
+                let newValue = Math.floor(Math.random() * (90 - 80 + 1)) + 80;
+
+                return { value: newValue, info: "Falló filtro 90 (Se queda en 80s)" };
+
+            }
+
+            let roll80s = Math.floor(Math.random() * (90 - 80 + 1)) + 80;
+
+            if (roll80s < 90) return { value: roll80s, info: "Rango 80-89" };
+
+            let passFilter90 = Math.random() < 0.5;
+
+            if (!passFilter90) {
+
+                let newValue = Math.floor(Math.random() * (90 - 80 + 1)) + 80;
+
+                return { value: newValue, info: "Falló filtro 90 (Se queda en 80s)" };
+
+            }
+
+            let roll90s = Math.floor(Math.random() * (100 - 90 + 1)) + 90;
+
+            return { value: roll90s, info: "Rango 90-100 (Leyenda)" };
+
+        }
+
+        const getRandomInt = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
+
+        const rollProbability = (chance) => Math.random() * 100 < chance;
+
+        function selectTier(distribution) {
+
+            const roll = Math.random() * 100;
+
+            let cumulative = 0;
+
+            const sortedDistribution = Object.entries(distribution).sort((a, b) => a[0].localeCompare(b[0]));
+
+            
+
+            for (const [tier, prob] of sortedDistribution) {
+
+                cumulative += prob;
+
+                if (roll < cumulative) return tier;
+
+            }
+
+            return null; 
+
+        }
+
+        // --- DICCIONARIO DE SVG ---
+
+        const SVG_ICONS = {
+
+            'common': `<svg xmlns="http://www.w3.org/2000/svg" class="w-full h-full" viewBox="0 0 24 24" fill="currentColor"><path d="M5 12h14M12 5v14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>`, 
+
+            'uncommon': `<svg xmlns="http://www.w3.org/2000/svg" class="w-full h-full" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.4 7.2h7.6l-6 4.8 2.4 7.2-6-4.8-6 4.8 2.4-7.2-6-4.8h7.6z"/></svg>`, 
+
+            'good': `<svg xmlns="http://www.w3.org/2000/svg" class="w-full h-full" viewBox="0 0 24 24" fill="currentColor"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>`, 
+
+            'great': `<svg xmlns="http://www.w3.org/2000/svg" class="w-full h-full" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L14.5 9.5L22 12L14.5 14.5L12 22L9.5 14.5L2 12L9.5 9.5L12 2Z" /></svg>`, 
+
+            'star': `<svg xmlns="http://www.w3.org/2000/svg" class="w-full h-full" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" /></svg>`, 
+
+            'special': `<svg xmlns="http://www.w3.org/2000/svg" class="w-full h-full" viewBox="0 0 24 24" fill="currentColor"><path fill-rule="evenodd" d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" clip-rule="evenodd"/></svg>`, 
+
+            'legendary': `<svg xmlns="http://www.w3.org/2000/svg" class="w-full h-full" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l9 5-3 15-6 4-6-4-3-15 9-5z M12 4L5.5 8l2.5 12.5L12 22l4-1.5L18.5 8 12 4z" opacity="0.9"/></svg>` 
+
+        };
+
+        const ABILITY_TIERS_BAD = ['Mala', 'Muy mala', 'Horrible', 'Horrorosa', 'Destroza carreras'];
+
+        const ABILITY_TIERS_GOOD = ['Común', 'Especial', 'Raro', 'Élite', 'Legendaria'];
+
+        const ABILITY_TIERS = [...ABILITY_TIERS_BAD, ...ABILITY_TIERS_GOOD];
+
+        
+
+        const POKEMON_CATEGORIES = ['Común', 'Especial', 'Raro', 'Élite', 'Legendario'];
+
+        // HABILIDADES BASE ACTUALIZADAS (POKÉMON)
+
+        const BASE_POKEMON_ABILITIES = {
+
+            'Mala': [
+
+                "Tibio", "Piel delgada", 
+
+                "Daño Suave Común", "Daño Suave Poco Común", "Daño Suave Especial", "Daño Suave Raro", "Daño Suave Épico", "Daño Suave Élíte", "Daño Suave Singular", 
+
+                "Daño Común", "Daño Poco Común", "Daño Crítico Común",
+
+                "Quitabono Suave Común", "Quitabono Suave Poco Común", "Quitabono Suave Especial", "Quitabono Suave Raro", "Quitabono Suave Épico", "Quitabono Suave Élite", "Quitabono Suave Singular", "Quitabono Suave Legendario",
+
+                "Quitabono Común", "Potencial dinámico inestable"
+
+            ],
+
+            'Muy mala': [
+
+                "Helado", "Cuerpo Frágil", "De Cristal", 
+
+                "Daño Suave Legendario", "Daño Especial", "Daño Raro", "Daño Épico", "Daño Élíte", "Daño Crítico Poco Común", "Daño Crítico Especial",
+
+                "Potencial Rígido", "Primeros Niveles complicados",
+
+                "Quitabono Poco Común", "Quitabono Especial", "Quitabono Raro", "Quitabono Épico", "Quitabono Élite", "Quitabono Singular", "Quitabono Crítico Común", "Quitabono Crítico Poco Común"
+
+            ],
+
+            'Horrible': [
+
+                "Forzado", "Potencial distraído", "Daño Singular", "Daño Legendario", "Daño Crítico Raro", "Daño Crítico Épico", "Daño Crítico Élíte", "Daño Crítico Singular",
+
+                "Estómago Débil", "Potencial Complicado", "Dulce Defectuoso", "Shok dulce",
+
+                "Quitabono Legendario", "Quitabono Crítico Especial", "Quitabono Crítico Raro", "Quitabono Crítico Épico",
+
+                "Hostigamiento", "Marca Tóxica", "Cicatriz Tóxica", "Paladar Asqueado", "Paladar Destrozado", "Primeros Niveles Batallozos", "Yin-yang", "Potencial dinámico MUY inestable", "Sin ganas de evolucionar", "Malo Evolucionando"
+
+            ],
+
+            'Horrorosa': [
+
+                "Forsadisimo", "Potencial quebrado", "Pecho Frio", "Daño Crítico Legendario", "Estómago Frágil", "Estómago Ruin", "Potencial Inzacable", "Dúo Defectuoso", "Empalagado", "Colapso Azucarado", "Diabético", "Diabetes Avanzada",
+
+                "Quitabono Crítico Élite", "Quitabono Crítico Singular", "Quitabono Crítico Legendario",
+
+                "Estómago de cristal", "Herida Tóxica", "Paladar corrompido", "Traumado", "Perturbado", "Primeros Niveles Estresantes", "Indiferente", "Horrible Evolucionando", "Horrendo Evolucionando"
+
+            ],
+
+            'Destroza carreras': [
+
+                "No da más", "Potencial Desperdiciado", "Trío Defectuoso", "Empalagoso", "Sobreempalagado", "Sobredosis de azúcar", "Crisis Hiperglucémica", "Estómago destruido", "Estómago roto", "Acoso", "Bullyng", "Marcado", "Potencial dinámico Ruleta rusa", "Rebelde", "Zona de Confort"
+
+            ],
+
+            'Común': [
+
+                "Mentalidad", "Cuerpo Fuerte", "Cuerpo de Acero", "Uso común", "Piel Tenaz",
+
+                "Bono Común", "Bono Poco Común", "Bono Especial", "Bono Raro", "Bono Épico", "Bono Élite"
+
+            ],
+
+            'Especial': [
+
+                "Cuerpo de Hierro", "Uso poco común", "Uso especial", "Uso Común Bien Hecho", "Uso Poco Común Bien Hecho", "Estomago Fuerte", "Piel Fuerte", "Ayuno Potenciado",
+
+                "Bono Singular", "Bono Legendario", "Gran bono Común", "Gran bono Poco Común", "Retención Tóxica"
+
+            ],
+
+            'Raro': [
+
+                "Agrandado", "Yo te ayudo", "Persistente", "Uso raro", "Uso épico", "Uso élite", "Uso singular", "Uso Especial Bien Hecho", "Uso Raro Bien Hecho", "Uso Común Perfecto", "Uso Poco Común Perfecto", "Estomago de Acero", "Sin rasguños", "Ayuno Satisfactorio",
+
+                "Gran bono Especial", "Gran bono Raro", "Gran bono Épico", "Gran bono Élite", "Mega bono Común", "Resistencia Tóxica", "Depurador", "Regeneración", "Le gustan las galletas"
+
+            ],
+
+            'Élite': [
+
+                "Yo resuelvo", "Yo me encargo", "Tenaz", "Uso legendario", "Uso Épico Bien Hecho", "Uso Élite Bien Hecho", "Uso Singular Bien Hecho", "Uso Legendario Bien Hecho", "Uso Especial Perfecto", "Uso Raro Perfecto", "Estómago de Hierro",
+
+                "Gran bono Singular", "Gran bono Legendario", "Mega bono Poco Común", "Mega bono Especial", "Sin daños", "Le encantan las galletas", "Busca piedras"
+
+            ],
+
+            'Legendaria': [
+
+                "ADN Mundiales", "Resilente", "Uso Épico Perfecto", "Uso Élite Perfecto", "Uso Singular Perfecto", "Uso Legendario Perfecto", "Ayuno Exquisito",
+
+                "Mega bono Raro", "Mega bono Épico", "Mega bono Élite", "Mega bono Singular", "Mega bono Legendario", "Ama las galletas", "Buscador de piedras persistente", "Buscador de piedras Maestro", "Bueno evolucionando", "Genio evolucionando", "Maestro Evolucionando"
+
+            ]
+
+        };
+
+        const ABILITY_DESCRIPTIONS = {
+
+            // MALAS
+
+            "Tibio": "Baja -2 Niveles en los Mundiales",
+
+            "Piel delgada": "Tiene 10% Probabilidades de que se le haga crónica una lesión",
+
+            "Daño Suave Común": "Los caramelosraros comunes sólo dan el 75% de su experiencia total.",
+
+            "Daño Suave Poco Común": "Los caramelosraros poco comunes sólo dan el 75% de su experiencia total.",
+
+            "Daño Suave Especial": "Los caramelosraros especiales sólo dan el 75% de su experiencia total.",
+
+            "Daño Suave Raro": "Los caramelosraros raros sólo dan el 75% de su experiencia total.",
+
+            "Daño Suave Épico": "Los caramelosraros épicos sólo dan el 75% de su experiencia total.",
+
+            "Daño Suave Élíte": "Los caramelosraros élite sólo dan el 75% de su experiencia total.",
+
+            "Daño Suave Singular": "Los caramelosraros singulares sólo dan el 75% de su experiencia total.",
+
+            "Daño Común": "Los caramelosraros comunes sólo dan el 50% de su experiencia total.",
+
+            "Daño Poco Común": "Los caramelosraros poco comunes sólo dan el 50% de su experiencia total.",
+
+            "Daño Crítico Común": "Los caramelosraros comunes sólo dan el 25% de su experiencia total.",
+
+            "Quitabono Suave Común": "El primer carameloraro Común que coma en la temporada le dará solo el 75% de la experiencia total.",
+
+            "Quitabono Suave Poco Común": "El primer carameloraro Poco Común que coma en la temporada le dará solo el 75% de la experiencia total.",
+
+            "Quitabono Suave Especial": "El primer carameloraro Especial que coma en la temporada le dará solo el 75% de la experiencia total.",
+
+            "Quitabono Suave Raro": "El primer carameloraro Raro que coma en la temporada le dará solo el 75% de la experiencia total.",
+
+            "Quitabono Suave Épico": "El primer carameloraro Épico que coma en la temporada le dará solo el 75% de la experiencia total.",
+
+            "Quitabono Suave Élite": "El primer carameloraro Élite que coma en la temporada le dará solo el 75% de la experiencia total.",
+
+            "Quitabono Suave Singular": "El primer carameloraro Singular que coma en la temporada le dará solo el 75% de la experiencia total.",
+
+            "Quitabono Suave Legendario": "El primer carameloraro Legendario que coma en la temporada le dará solo el 75% de la experiencia total.",
+
+            "Quitabono Común": "El primer carameloraro Común que coma en la temporada le dará solo el 50% de la experiencia total.",
+
+            "Potencial dinámico inestable": "En cada Nivel del Potencial dinámico Multiplicará de entre X0.01-X5.",
+
+            // MUY MALAS
+
+            "Helado": "Baja -5 Niveles en los Mundiales",
+
+            "Cuerpo Frágil": "Tiene 20% Probabilidades de que se le haga crónica una lesión",
+
+            "De Cristal": "Tiene 30% Probabilidades de que se le haga crónica una lesión",
+
+            "Daño Suave Legendario": "Los caramelosraros legendarios sólo dan el 75% de su experiencia total.",
+
+            "Daño Especial": "Los caramelosraros especiales sólo dan el 50% de su experiencia total.",
+
+            "Daño Raro": "Los caramelosraros raros sólo dan el 50% de su experiencia total.",
+
+            "Daño Épico": "Los caramelosraros épicos sólo dan el 50% de su experiencia total.",
+
+            "Daño Élíte": "Los caramelosraros élite sólo dan el 50% de su experiencia total.",
+
+            "Daño Crítico Poco Común": "Los caramelosraros poco comunes sólo dan el 25% de su experiencia total.",
+
+            "Daño Crítico Especial": "Los caramelosraros especiales sólo dan el 25% de su experiencia total.",
+
+            "Potencial Rígido": "Una Galleta Dinámica solo puede reducir el potencial dinámico como máximo en -0.03 por uso, sin importar el rango de la galleta (1-5).",
+
+            "Primeros Niveles complicados": "El Potencial dinámico estará en X3 en los primeros 5 Niveles donde se use el potencial dinámico.",
+
+            "Quitabono Poco Común": "El primer carameloraro Poco Común que coma en la temporada le dará solo el 50% de la experiencia total.",
+
+            "Quitabono Especial": "El primer carameloraro Especial que coma en la temporada le dará solo el 50% de la experiencia total.",
+
+            "Quitabono Raro": "El primer carameloraro Raro que coma en la temporada le dará solo el 50% de la experiencia total.",
+
+            "Quitabono Épico": "El primer carameloraro Épico que coma en la temporada le dará solo el 50% de la experiencia total.",
+
+            "Quitabono Élite": "El primer carameloraro Élite que coma en la temporada le dará solo el 50% de la experiencia total.",
+
+            "Quitabono Singular": "El primer carameloraro Singular que coma en la temporada le dará solo el 50% de la experiencia total.",
+
+            "Quitabono Crítico Común": "El primer carameloraro Común que coma en la temporada le dará solo el 25% de la experiencia total.",
+
+            "Quitabono Crítico Poco Común": "El primer carameloraro Poco Común que coma en la temporada le dará solo el 25% de la experiencia total.",
+
+            // HORRIBLE
+
+            "Forzado": "El Potencial dinámico estará en X3",
+
+            "Potencial distraído": "Tendrá -5 menos del Potencial total.",
+
+            "Daño Singular": "Los caramelosraros singulares sólo dan el 50% de su experiencia total.",
+
+            "Daño Legendario": "Los caramelosraros legendarios sólo dan el 50% de su experiencia total.",
+
+            "Daño Crítico Raro": "Los caramelosraros raros sólo dan el 25% de su experiencia total.",
+
+            "Daño Crítico Épico": "Los caramelosraros épicos sólo dan el 25% de su experiencia total.",
+
+            "Daño Crítico Élíte": "Los caramelosraros élite sólo dan el 25% de su experiencia total.",
+
+            "Daño Crítico Singular": "Los caramelosraros singulares sólo dan el 25% de su experiencia total.",
+
+            "Estómago Débil": "Los caramelosraros oscuros de cualquier tipo, le quitan el doble de experiencia que normalmente quitan.",
+
+            "Potencial Complicado": "Una Galleta Dinámica solo puede reducir el potencial dinámico como máximo en -0.02 por uso, sin importar el rango de la galleta (1-5).",
+
+            "Dulce Defectuoso": "El primer Carameloraro que coma en cada temporada no le otorga XP.",
+
+            "Shok dulce": "Si come 3 caramelosraros legendarios en la misma temporada baja 1 nivel.",
+
+            "Quitabono Legendario": "El primer carameloraro Legendario que coma en la temporada le dará solo el 50% de la experiencia total.",
+
+            "Quitabono Crítico Especial": "El primer carameloraro Especial que coma en la temporada le dará solo el 25% de la experiencia total.",
+
+            "Quitabono Crítico Raro": "El primer carameloraro Raro que coma en la temporada le dará solo el 25% de la experiencia total.",
+
+            "Quitabono Crítico Épico": "El primer carameloraro Épico que coma en la temporada le dará solo el 25% de la experiencia total.",
+
+            "Hostigamiento": "Un entrenador random en toda la generación si o si usará los caramelosraros oscuros de cualquier tipo que tenga en este Pokémon.",
+
+            "Marca Tóxica": "Si el Pokémon se intoxica por un Carameloraro Oscuro de cualquier tipo, pierde permanentemente -0.5 puntos del Potencial Total.",
+
+            "Cicatriz Tóxica": "Si el Pokémon se intoxica por un Carameloraro Oscuro de cualquier tipo, pierde permanentemente -1 punto de Potencial Total.",
+
+            "Paladar Asqueado": "Si come un carameloraro oscuro de cualquier tipo, en esa temporada los caramelosraros normales que coma no le darán XP.",
+
+            "Paladar Destrozado": "Si come un carameloraro oscuro de cualquier tipo, en esa temporada y en la siguiente los caramelosraros normales que coma no le darán XP.",
+
+            "Primeros Niveles Batallozos": "El Potencial dinámico estará en X5 en los primeros 5 Niveles donde se use el potencial dinámico.",
+
+            "Yin-yang": "El Primer nivel del Potencial dinámico estará en X20 y después de conseguirse ese nivel, absolutamente todos los siguientes estarán en X0.5.",
+
+            "Potencial dinámico MUY inestable": "En cada Nivel del Potencial dinámico Multiplicará de entre X0.01-X10.",
+
+            "Sin ganas de evolucionar": "Hay 25% de probabilidades de que al momento de usar la o las piedras para evolucionar al Pokémon, este se niegue, tendrá que esperar para la siguiente temporada para volver a intentar.",
+
+            "Malo Evolucionando": "Al evolucionar pierde tres niveles.",
+
+            // HORROROSA
+
+            "Forsadisimo": "El Potencial dinámico estará en X4",
+
+            "Potencial quebrado": "Tendrá -10 menos del Potencial total.",
+
+            "Pecho Frio": "Baja -10 Niveles en los Mundiales",
+
+            "Daño Crítico Legendario": "Los caramelosraros legendarios sólo dan el 25% de su experiencia total.",
+
+            "Estómago Frágil": "Los caramelosraros oscuros de cualquier tipo, le quitan el triple de experiencia que normalmente quitan.",
+
+            "Estómago Ruin": "Los caramelosraros oscuros de cualquier tipo, le quitan el cuádruple de experiencia que normalmente quitan.",
+
+            "Potencial Inzacable": "Una Galleta Dinámica solo puede reducir el potencial dinámico como máximo en -0.01 por uso, sin importar el rango de la galleta (1-5).",
+
+            "Dúo Defectuoso": "Los dos primeros Caramelosraros que coma en cada temporada no le otorga XP.",
+
+            "Empalagado": "No puede comer más de 7 Carameloraros en una Temporada.",
+
+            "Colapso Azucarado": "Si come 3 caramelosraros legendarios en la misma temporada baja 2 niveles.",
+
+            "Diabético": "Si consume 5 caramelosraros en una misma temporada, hay 20% de probabilidades de que se lesione de Hiperglucemia.",
+
+            "Diabetes Avanzada": "Si consume 5 caramelosraros en una misma temporada, hay 50% de probabilidades de que se lesione de Hiperglucemia.",
+
+            "Quitabono Crítico Élite": "El primer carameloraro Élite que coma en la temporada le dará solo el 25% de la experiencia total.",
+
+            "Quitabono Crítico Singular": "El primer carameloraro Singular que coma en la temporada le dará solo el 25% de la experiencia total.",
+
+            "Quitabono Crítico Legendario": "El primer carameloraro Legendario que coma en la temporada le dará solo el 25% de la experiencia total.",
+
+            "Estómago de cristal": "Si consume un carameloraro oscuro Destructor, le quitará el doble de XP y se intoxicará si o si.",
+
+            "Herida Tóxica": "Si el Pokémon se intoxica por un Carameloraro Oscuro de cualquier tipo, pierde permanentemente -2 puntos del Potencial Total.",
+
+            "Paladar corrompido": "Si come un carameloraro oscuro de cualquier tipo, en esa temporada y las siguientes dos los caramelosraros normales que coma no le darán XP.",
+
+            "Traumado": "Si come un Carameloraro Oscuro Destructor, en 1-3 temporadas no querrá comer absolutamente nada.",
+
+            "Perturbado": "Si come un Carameloraro Oscuro de cualquier tipo, en 1-5 temporadas no querrá comer absolutamente nada.",
+
+            "Primeros Niveles Estresantes": "El Potencial dinámico estará en X7 en los primeros 5 Niveles donde se use el potencial dinámico.",
+
+            "Indiferente": "Hay 50% de probabilidades de que al momento de usar la o las piedras para evolucionar al Pokémon, este se niegue, tendrá que esperar tres temporadas para volver a intentar.",
+
+            "Horrible Evolucionando": "Al evolucionar pierde cuatro niveles.",
+
+            "Horrendo Evolucionando": "Al evolucionar pierde cinco niveles.",
+
+            // DESTROZA CARRERAS
+
+            "No da más": "El Potencial dinámico estará en X5",
+
+            "Potencial Desperdiciado": "Tendrá -20 menos del Potencial total.",
+
+            "Trío Defectuoso": "Los tres primeros Caramelosraros que coma en cada temporada no le otorga XP.",
+
+            "Empalagoso": "No puede comer más de 5 Carameloraros en una Temporada.",
+
+            "Sobreempalagado": "No puede comer más de 3 Carameloraros en una Temporada.",
+
+            "Sobredosis de azúcar": "Si come 2 caramelosraros legendarios en la misma temporada baja 3 niveles.",
+
+            "Crisis Hiperglucémica": "Si consume 5 caramelosraros en una misma temporada, hay 70% de probabilidades de que se lesione de Hiperglucemia.",
+
+            "Estómago destruido": "Si consume cualquier tipo de carameloraro oscuro, le quitará el triple de XP y se intoxicará si o si.",
+
+            "Estómago roto": "Si consume cualquier tipo de carameloraro oscuro, le quitará el cuádruple de XP se intoxicará si o si y la lesión será Catastrófica si o si.",
+
+            "Acoso": "Dos entrenadores randoms en toda la generación si o si usarán los caramelosraros oscuros de cualquier tipo que tengan en este Pokémon.",
+
+            "Bullyng": "Tres entrenadores randoms en toda la generación si o si usarán los caramelosraros oscuros de cualquier tipo que tengan en este Pokémon.",
+
+            "Marcado": "Si consume un Carameloraro Oscuro de cualquier tipo, en 3-5 temporadas no querrá comer absolutamente nada.",
+
+            "Potencial dinámico Ruleta rusa": "En cada Nivel del Potencial dinámico Multiplicará de entre X0.10-X20.",
+
+            "Rebelde": "Hay 75% de probabilidades de que al momento de usar la o las piedras para evolucionar al Pokémon, este se niegue, tendrá que esperar cinco temporadas para volver a intentar.",
+
+            "Zona de Confort": "El Pokémon nunca evolucionará.",
+
+            // COMUN
+
+            "Mentalidad": "Sube 2 Niveles en los Mundiales.",
+
+            "Cuerpo Fuerte": "Tiene 10% de probabilidades adicionales de que no se le haga crónica una lesión.",
+
+            "Cuerpo de Acero": "Tiene 20% de probabilidades adicionales de que no se le haga crónica una lesión.",
+
+            "Uso común": "Los caramelosraros comunes le dan X2 de experiencia.",
+
+            "Piel Tenaz": "Tiene 25% de probabilidades de evitar las lesiones, Muy leve y Leve.",
+
+            "Bono Común": "El primer carameloraro Común que coma en la temporada le dará X2 de experiencia.",
+
+            "Bono Poco Común": "El primer carameloraro Poco Común que coma en la temporada le dará X2 de experiencia.",
+
+            "Bono Especial": "El primer carameloraro Especial que coma en la temporada le dará X2 de experiencia.",
+
+            "Bono Raro": "El primer carameloraro Raro que coma en la temporada le dará X2 de experiencia.",
+
+            "Bono Épico": "El primer carameloraro Épico que coma en la temporada le dará X2 de experiencia.",
+
+            "Bono Élite": "El primer carameloraro Élite que coma en la temporada le dará X2 de experiencia.",
+
+            // ESPECIAL
+
+            "Cuerpo de Hierro": "Tiene 30% de probabilidades adicionales de que no se le haga crónica una lesión.",
+
+            "Uso poco común": "Los caramelosraros poco comunes le dan X2 de experiencia.",
+
+            "Uso especial": "Los caramelosraros especiales le dan X2 de experiencia.",
+
+            "Uso Común Bien Hecho": "Los caramelosraros Comunes le dan X3 de experiencia.",
+
+            "Uso Poco Común Bien Hecho": "Los caramelosraros Poco Comunes le dan X3 de experiencia.",
+
+            "Estomago Fuerte": "Los caramelosraros oscuros normales, le quitan sólo la mitad de la experiencia que quitan normalmente.",
+
+            "Piel Fuerte": "Tiene 50% de probabilidades de evitar las lesiones, Muy leve y Leve.",
+
+            "Ayuno Potenciado": "Si no ha usado ningún Carameloraro en 5 temporadas, el siguiente otorga XP X3. (NO ACUMULABLE)",
+
+            "Bono Singular": "El primer carameloraro Singular que coma en la temporada le dará X2 de experiencia.",
+
+            "Bono Legendario": "El primer carameloraro Legendario que coma en la temporada le dará X2 de experiencia.",
+
+            "Gran bono Común": "El primer carameloraro Común que coma en la temporada le dará X5 de experiencia.",
+
+            "Gran bono Poco Común": "El primer carameloraro Poco Común que coma en la temporada le dará X5 de experiencia.",
+
+            "Retención Tóxica": "Los caramelosraros oscuros normales no le hacen daño pero si le bajan la experiencia, los destructores si le hacen daño y también le bajan la experiencia.",
+
+            // RARO
+
+            "Agrandado": "Sube 5 Niveles en los Mundiales.",
+
+            "Yo te ayudo": "Elimina una habilidad mala del entrenador en 10-84 Temporadas.",
+
+            "Persistente": "Sube +10000xp después de recuperarse de una lesión.",
+
+            "Uso raro": "Los caramelosraros raros le dan X2 de experiencia.",
+
+            "Uso épico": "Los caramelosraros épicos le dan X2 de experiencia.",
+
+            "Uso élite": "Los caramelosraros élite le dan X2 de experiencia.",
+
+            "Uso singular": "Los caramelosraros singulares le dan X2 de experiencia.",
+
+            "Uso Especial Bien Hecho": "Los caramelosraros Especiales le dan X3 de experiencia.",
+
+            "Uso Raro Bien Hecho": "Los caramelosraros Raros le dan X3 de experiencia.",
+
+            "Uso Común Perfecto": "Los caramelosraros Comunes le dan X5 de experiencia.",
+
+            "Uso Poco Común Perfecto": "Los caramelosraros Poco Comunes le dan X5 de experiencia.",
+
+            "Estomago de Acero": "Los caramelosraros oscuros normales y destructores, le quitan sólo la mitad de la experiencia que quitan normalmente.",
+
+            "Sin rasguños": "No se puede lesionar de las lesiones, Muy leve y Leve.",
+
+            "Ayuno Satisfactorio": "Si no ha usado ningún Carameloraro en 5 temporadas, el siguiente otorga XP X7. (NO ACUMULABLE)",
+
+            "Gran bono Especial": "El primer carameloraro Especial que coma en la temporada le dará X5 de experiencia.",
+
+            "Gran bono Raro": "El primer carameloraro Raro que coma en la temporada le dará X5 de experiencia.",
+
+            "Gran bono Épico": "El primer carameloraro Épico que coma en la temporada le dará X5 de experiencia.",
+
+            "Gran bono Élite": "El primer carameloraro Élite que coma en la temporada le dará X5 de experiencia.",
+
+            "Mega bono Común": "El primer carameloraro Común que coma en la temporada le dará X10 de experiencia.",
+
+            "Resistencia Tóxica": "Ni los caramelosraros oscuros normales ni los destructores le hacen daño, pero si le bajan la experiencia igualmente.",
+
+            "Depurador": "Si el Pokémon come un Carameloraro Oscuro, su siguiente Carameloraro normal (de cualquier tipo) le dará XP X3 (solo un uso por temporada, si no tiene caramelosraros normales en esa temporada no funcionará el efecto en la siguiente temporada).",
+
+            "Regeneración": "Si el Pokémon come un Carameloraro Oscuro, su siguiente Carameloraro normal (de cualquier tipo) le dará XP X5 (solo un uso por temporada, si no tiene caramelosraros normales en esa temporada no funcionará el efecto en la siguiente temporada).",
+
+            "Le gustan las galletas": "Todas las galletas dinámicas que coma darán si o si entre 0.03-0.05 de resta del potencial dinámico.",
+
+            // ELITE
+
+            "Yo resuelvo": "Elimina dos habilidades malas del entrenador en 5-60 Temporadas.",
+
+            "Yo me encargo": "Elimina Todas las habilidades malas del entrenador 5-40 Temporadas.",
+
+            "Tenaz": "Sube +20000xp después de recuperarse de una lesión.",
+
+            "Uso legendario": "Los caramelosraros legendarios le dan X2 de experiencia.",
+
+            "Uso Épico Bien Hecho": "Los caramelosraros Épicos le dan X3 de experiencia.",
+
+            "Uso Élite Bien Hecho": "Los caramelosraros Élite le dan X3 de experiencia. ",
+
+            "Uso Singular Bien Hecho": "Los caramelosraros Singulares le dan X3 de experiencia.",
+
+            "Uso Legendario Bien Hecho": "Los caramelosraros Legendarios le dan X3 de experiencia.",
+
+            "Uso Especial Perfecto": "Los caramelosraros Especiales le dan X5 de experiencia.",
+
+            "Uso Raro Perfecto": "Los caramelosraros Raros le dan X5 de experiencia.",
+
+            "Estómago de Hierro": "Los caramelosraros oscuros normales y destructores, le quitan sólo el 25% de la experiencia que quitan normalmente.",
+
+            "Gran bono Singular": "El primer carameloraro Singular que coma en la temporada le dará X5 de experiencia.",
+
+            "Gran bono Legendario": "El primer carameloraro Legendario que coma en la temporada le dará X5 de experiencia.",
+
+            "Mega bono Poco Común": "El primer carameloraro Poco Común que coma en la temporada le dará X10 de experiencia.",
+
+            "Mega bono Especial": "El primer carameloraro Especial que coma en la temporada le dará X10 de experiencia.",
+
+            "Sin daños": "Si el Pokémon come un Carameloraro Oscuro, su siguiente Carameloraro normal (de cualquier tipo) le dará XP X10 (solo un uso por temporada, si no tiene caramelosraros normales en esa temporada no funcionará el efecto en la siguiente temporada).",
+
+            "Le encantan las galletas": "Todas las galletas dinámicas que coma darán si o si entre 0.04-0.05 de resta del potencial dinámico.",
+
+            "Busca piedras": "Hay 25% de probabilidades de que encuentre las piedras que necesita para evolucionar cuando necesite evolucionar.",
+
+            // LEGENDARIA
+
+            "ADN Mundiales": "Sube 10 Niveles en los Mundiales.",
+
+            "Resilente": "Sube +30000xp después de recuperarse de una lesión.",
+
+            "Uso Épico Perfecto": "Los caramelosraros Épicos le dan X5 de experiencia.",
+
+            "Uso Élite Perfecto": "Los caramelosraros Élite le dan X5 de experiencia.",
+
+            "Uso Singular Perfecto": "Los caramelosraros Singulares le dan X5 de experiencia.",
+
+            "Uso Legendario Perfecto": "Los caramelosraros Legendarios le dan X5 de experiencia.",
+
+            "Ayuno Exquisito": "Si no ha usado ningún Carameloraro en 4 temporadas, el siguiente otorga XP X10. (NO ACUMULABLE)",
+
+            "Mega bono Raro": "El primer carameloraro Raro que coma en la temporada le dará X10 de experiencia.",
+
+            "Mega bono Épico": "El primer carameloraro Épico que coma en la temporada le dará X10 de experiencia.",
+
+            "Mega bono Élite": "El primer carameloraro Élite que coma en la temporada le dará X10 de experiencia.",
+
+            "Mega bono Singular": "El primer carameloraro Singular que coma en la temporada le dará X10 de experiencia.",
+
+            "Mega bono Legendario": "El primer carameloraro Legendario que coma en la temporada le dará X10 de experiencia.",
+
+            "Ama las galletas": "Todas las galletas dinámicas que coma darán si o si siempre -0.05 de resta del potencial dinámico.",
+
+            "Buscador de piedras persistente": "Hay 50% de probabilidades de que encuentre las piedras que necesita para evolucionar cuando necesite evolucionar.",
+
+            "Buscador de piedras Maestro": "Hay 75% de probabilidades de que encuentre las piedras que necesita para evolucionar cuando necesite evolucionar.",
+
+            "Bueno evolucionando": "Sube tres niveles al evolucionar.",
+
+            "Genio evolucionando": "Sube cuatro niveles al evolucionar.",
+
+            "Maestro Evolucionando": "Sube cinco niveles al evolucionar."
+
+        };
+
+        // --- GESTIÓN DE CONFIGURACIÓN MÚLTIPLE (POR CATEGORÍA) ---
+
+        
+
+        // Estructura de configuración por defecto para UNA categoría
+
+        const DEFAULT_SINGLE_CONFIG = {
+
+            Potencial: { min: 10, max: 100 }, 
+
+            AbilityRolls: [40, 20, 10], 
+
+            QualityDistribution: { 'Buena': 20, 'Mala': 80 },
+
+            GoodTierDistribution: { 'Común': 50, 'Especial': 25, 'Raro': 15, 'Élite': 5, 'Legendaria': 5 },
+
+            BadTierDistribution: { 'Mala': 5, 'Muy mala': 5, 'Horrible': 15, 'Horrorosa': 25, 'Destroza carreras': 50 },
+
+            AnimationSpeed: 3
+
+        };
+
+        // Objeto principal que guarda las 5 configuraciones
+
+        let GLOBAL_CATEGORY_CONFIGS = {};
+
+        // Inicializar con copias profundas
+
+        POKEMON_CATEGORIES.forEach(cat => {
+
+            GLOBAL_CATEGORY_CONFIGS[cat] = JSON.parse(JSON.stringify(DEFAULT_SINGLE_CONFIG));
+
+        });
+
+        // Configuración específica por defecto (para darle variedad inicial, aunque el usuario puede editar)
+
+        // Ejemplo: Legendario debería tener mejores stats
+
+        GLOBAL_CATEGORY_CONFIGS['Legendario'].Potencial = { min: 60, max: 100 };
+
+        GLOBAL_CATEGORY_CONFIGS['Legendario'].QualityDistribution = { 'Buena': 80, 'Mala': 20 };
+
+        GLOBAL_CATEGORY_CONFIGS['Legendario'].GoodTierDistribution = { 'Común': 0, 'Especial': 0, 'Raro': 10, 'Élite': 40, 'Legendaria': 50 };
+
+        GLOBAL_CATEGORY_CONFIGS['Élite'].Potencial = { min: 40, max: 90 };
+
+        GLOBAL_CATEGORY_CONFIGS['Élite'].QualityDistribution = { 'Buena': 60, 'Mala': 40 };
+
+        
+
+        GLOBAL_CATEGORY_CONFIGS['Común'].Potencial = { min: 1, max: 60 };
+
+        GLOBAL_CATEGORY_CONFIGS['Común'].QualityDistribution = { 'Buena': 10, 'Mala': 90 };
+
+        let managedAbilities = [];
+
+        let nextAbilityId = 1;
+
+        // --- PERSISTENCIA: LOADERS & SAVERS ---
+
+        function loadManagedAbilities() {
+
+            const stored = localStorage.getItem(LS_KEYS.ABILITIES);
+
+            if (stored) {
+
+                try {
+
+                    managedAbilities = JSON.parse(stored);
+
+                    if (managedAbilities.length > 0) {
+
+                        nextAbilityId = Math.max(...managedAbilities.map(a => a.id)) + 1;
+
+                    }
+
+                } catch(e) {
+
+                    console.error("Error cargando habilidades, restaurando defaults", e);
+
+                    initializeManagedAbilities(true); // Restaurar base
+
+                }
+
+            } else {
+
+                initializeManagedAbilities(true);
+
+            }
+
+        }
+
+        function saveManagedAbilities() {
+
+            localStorage.setItem(LS_KEYS.ABILITIES, JSON.stringify(managedAbilities));
+
+        }
+
+        function loadGlobalConfig() {
+
+            const stored = localStorage.getItem(LS_KEYS.CONFIG);
+
+            if (stored) {
+
+                try {
+
+                    const parsed = JSON.parse(stored);
+
+                    // Comprobación de compatibilidad básica
+
+                    if (parsed['Común'] && parsed['Legendario']) {
+
+                        GLOBAL_CATEGORY_CONFIGS = parsed;
+
+                    }
+
+                } catch(e) {
+
+                    console.error("Error cargando config", e);
+
+                }
+
+            }
+
+        }
+
+        function saveGlobalConfig() {
+
+            localStorage.setItem(LS_KEYS.CONFIG, JSON.stringify(GLOBAL_CATEGORY_CONFIGS));
+
+        }
+
+        function initializeManagedAbilities(forceReset = false) {
+
+            if (!forceReset && managedAbilities.length > 0) return;
+
+            
+
+            managedAbilities = [];
+
+            for (const tier of ABILITY_TIERS) {
+
+                const isGood = ABILITY_TIERS_GOOD.includes(tier);
+
+                const abilityNames = BASE_POKEMON_ABILITIES[tier] || [];
+
+                
+
+                abilityNames.forEach(name => {
+
+                    managedAbilities.push({
+
+                        id: nextAbilityId++,
+
+                        name: name,
+
+                        description: ABILITY_DESCRIPTIONS[name] || "Descripción no disponible.",
+
+                        tier: tier,
+
+                        isGood: isGood
+
+                    });
+
+                });
+
+            }
+
+            saveManagedAbilities();
+
+        }
+
+        
+
+        function getDynamicAbilityPools() {
+
+            const pools = {};
+
+            for (const tier of ABILITY_TIERS) {
+
+                pools[tier] = [];
+
+            }
+
+            managedAbilities.forEach(ability => {
+
+                if (pools[ability.tier]) {
+
+                    pools[ability.tier].push(ability.name);
+
+                }
+
+            });
+
+            return pools;
+
+        }
+
+        // GENERAR POKEMON
+
+        function generatePokemon() {
+
+            // 1. Obtener la categoría seleccionada en la UI
+
+            const selectedCategory = document.getElementById('pokemon-category-select').value;
+
+            
+
+            // 2. Cargar la configuración de esa categoría específica
+
+            const config = GLOBAL_CATEGORY_CONFIGS[selectedCategory];
+
+            const abilities = [];
+
+            const dynamicPools = getDynamicAbilityPools(); 
+
+            // Usar Min/Max de la configuración de la categoría
+
+            const potentialResult = getFilteredPotential(config.Potencial.min, config.Potencial.max);
+
+            const potential = potentialResult.value;
+
+            
+
+            document.getElementById('debug-info').textContent = potentialResult.info + ` [Cat: ${selectedCategory}]`;
+
+            // Usar Probabilidades de Habilidad de la configuración
+
+            config.AbilityRolls.forEach(chance => {
+
+                if (rollProbability(chance)) {
+
+                    let attempts = 0;
+
+                    let added = false;
+
+                    while(attempts < 20 && !added) {
+
+                        const qualityName = selectTier(config.QualityDistribution)
+
+                        const quality = qualityName === 'Buena' ? 'Buena' : 'Mala';
+
+                        
+
+                        let tierName;
+
+                        if (quality === 'Buena') {
+
+                            tierName = selectTier(config.GoodTierDistribution);
+
+                        } else {
+
+                            tierName = selectTier(config.BadTierDistribution);
+
+                        }
+
+                        
+
+                        const abilityPoolNames = dynamicPools[tierName];
+
+                        if (abilityPoolNames && abilityPoolNames.length > 0) {
+
+                            const selectedAbilityName = abilityPoolNames[getRandomInt(0, abilityPoolNames.length - 1)];
+
+                            const fullAbility = managedAbilities.find(a => a.name === selectedAbilityName);
+
+                            
+
+                            if (fullAbility && !abilities.some(a => a.name === selectedAbilityName)) {
+
+                                abilities.push(fullAbility);
+
+                                added = true; 
+
+                            }
+
+                        }
+
+                        attempts++;
+
+                    }
+
+                }
+
+            });
+
+            return {
+
+                potential: potential,
+
+                abilities: abilities,
+
+                categoryConfig: config // Pasamos la config para saber la velocidad de animación
+
+            };
+
+        }
+
+        function getPotentialColorAndPhrase(potential) {
+
+            // Frases cambiadas a Pokémon
+
+            if (potential >= 80) return { phrase: 'Potencial para ser un Pokémon generacional.', className: 'potential-color-7', svg: SVG_ICONS['legendary'] };
+
+            if (potential >= 70) return { phrase: 'Potencial para ser un Pokémon especial.', className: 'potential-color-6', svg: SVG_ICONS['special'] };
+
+            if (potential >= 60) return { phrase: 'Potencial para ser una estrella.', className: 'potential-color-5', svg: SVG_ICONS['star'] };
+
+            if (potential >= 50) return { phrase: 'Potencial para ser un Gran Pokémon.', className: 'potential-color-4', svg: SVG_ICONS['great'] };
+
+            if (potential >= 40) return { phrase: 'Potencial para ser un buen Pokémon.', className: 'potential-color-3', svg: SVG_ICONS['good'] };
+
+            if (potential >= 30) return { phrase: 'Potencial para ser un poco distinto a la media.', className: 'potential-color-2', svg: SVG_ICONS['uncommon'] };
+
+            return { phrase: 'Potencial para ser uno del montón.', className: 'potential-color-1', svg: SVG_ICONS['common'] };
+
+        }
+
+        function getAbilityCardStyles(ability) {
+
+            const tier = ability.tier;
+
+            const isGood = ABILITY_TIERS_GOOD.includes(tier);
+
+            let bgColor = 'bg-gray-100';
+
+            let tierColor = 'text-gray-900';
+
+            let descriptionColor = 'text-gray-600';
+
+            if (isGood) {
+
+                switch (tier) {
+
+                    case 'Legendaria': bgColor = 'bg-good-legendary'; tierColor = 'text-gray-900'; descriptionColor = 'text-gray-800'; break;
+
+                    case 'Élite': bgColor = 'bg-good-elite'; tierColor = 'text-white'; descriptionColor = 'text-indigo-100'; break;
+
+                    case 'Raro': bgColor = 'bg-good-raro'; tierColor = 'text-white'; descriptionColor = 'text-green-100'; break;
+
+                    case 'Especial': bgColor = 'bg-good-special'; tierColor = 'text-white'; descriptionColor = 'text-blue-100'; break;
+
+                    default: bgColor = 'bg-good-common'; tierColor = 'text-gray-800'; descriptionColor = 'text-gray-600'; // Común
+
+                }
+
+            } else {
+
+                switch (tier) {
+
+                    case 'Destroza carreras': bgColor = 'bg-bad-destrozacarreras'; tierColor = 'text-white'; descriptionColor = 'text-gray-300'; break;
+
+                    case 'Horrorosa': bgColor = 'bg-bad-horrorosa'; tierColor = 'text-white'; descriptionColor = 'text-red-200'; break;
+
+                    case 'Horrible': bgColor = 'bg-bad-horrible'; tierColor = 'text-white'; descriptionColor = 'text-pink-200'; break;
+
+                    case 'Muy mala': bgColor = 'bg-bad-muymala'; tierColor = 'text-white'; descriptionColor = 'text-red-200'; break;
+
+                    default: bgColor = 'bg-bad-mala'; tierColor = 'text-gray-900'; descriptionColor = 'text-red-800'; // Mala
+
+                }
+
+            }
+
+            
+
+            const isDarkBackground = tier.includes('Destroza carreras') || tier.includes('Horrorosa') || tier.includes('Horrible') || tier.includes('Élite') || tier.includes('Especial') || tier.includes('Raro');
+
+            return { bgColor, tierColor, descriptionColor, isDarkBackground };
+
+        }
+
+        const generateButton = document.getElementById('generate-button');
+
+        const resultsContainer = document.getElementById('results-container');
+
+        const potentialCardEl = document.getElementById('potential-card');
+
+        const potentialIconContainerEl = document.getElementById('potential-icon-container');
+
+        const trainerPotentialEl = document.getElementById('trainer-potential');
+
+        const potentialPhraseEl = document.getElementById('potential-phrase');
+
+        const potentialTextWrapperEl = document.getElementById('potential-text-wrapper');
+
+        const abilitiesListEl = document.getElementById('abilities-list');
+
+        const abilityCountEl = document.getElementById('ability-count');
+
+        const abilityCountDisplayEl = document.getElementById('ability-count-display'); 
+
+        const noAbilitiesEl = document.getElementById('no-abilities');
+
+        // Función Helper para Delay
+
+        const delay = ms => new Promise(res => setTimeout(res, ms));
+
+        function renderPokemon(pokemon) {
+
+            resultsContainer.classList.remove('hidden');
+
+            const { phrase, className, svg } = getPotentialColorAndPhrase(pokemon.potential);
+
+            
+
+            trainerPotentialEl.className = 'text-7xl md:text-8xl font-black leading-none ' + className;
+
+            potentialPhraseEl.className = 'text-2xl md:text-3xl font-extrabold mt-4 mb-2 relative z-10 ' + className;
+
+            potentialTextWrapperEl.style.opacity = '1';
+
+            
+
+            potentialIconContainerEl.innerHTML = svg;
+
+            const svgElement = potentialIconContainerEl.querySelector('svg');
+
+            if(svgElement) svgElement.classList.add(className);
+
+            trainerPotentialEl.textContent = pokemon.potential;
+
+            potentialPhraseEl.textContent = phrase;
+
+            abilitiesListEl.innerHTML = ''; 
+
+            
+
+            const count = pokemon.abilities.length;
+
+            const text = count === 1 
+
+                ? `${count} Habilidad Descubierta` 
+
+                : `${count} Habilidades Descubiertas`;
+
+            
+
+            abilityCountDisplayEl.textContent = `(${text})`;
+
+            abilityCountEl.textContent = count; 
+
+            
+
+            noAbilitiesEl.classList.toggle('hidden', count > 0);
+
+            pokemon.abilities.forEach(ability => {
+
+                const item = createAbilityCardElement(ability);
+
+                abilitiesListEl.appendChild(item);
+
+            });
+
+        }
+
+        function createAbilityCardElement(ability) {
+
+            const { bgColor, tierColor, descriptionColor, isDarkBackground } = getAbilityCardStyles(ability);
+
+            const item = document.createElement('div');
+
+            item.className = `p-5 rounded-2xl shadow-xl border-t-4 ${bgColor} transition duration-150 transform hover:scale-[1.01]`;
+
+            item.innerHTML = `
+
+                <div class="flex items-center justify-between mb-3 border-b border-opacity-30 pb-2">
+
+                    <span class="text-2xl font-black ${tierColor}">${ability.name}</span>
+
+                    <span class="text-sm font-bold px-3 py-1 rounded-full uppercase ml-4 shadow-md ${isDarkBackground ? 'bg-white bg-opacity-30 text-white' : 'bg-black bg-opacity-20 text-gray-800'}">
+
+                        ${ability.tier}
+
+                    </span>
+
+                </div>
+
+                <p class="text-sm font-medium ${descriptionColor}">${ability.description}</p>
+
+            `;
+
+            return item;
+
+        }
+
+        // --- LÓGICA DE ANIMACIÓN ---
+
+        async function animatePokemon(pokemon) {
+
+            // Factor de Velocidad específico de la categoría
+
+            const speedFactor = pokemon.categoryConfig.AnimationSpeed || 3;
+
+            
+
+            // 1. Reset UI
+
+            resultsContainer.classList.remove('hidden');
+
+            potentialIconContainerEl.innerHTML = ''; 
+
+            potentialIconContainerEl.className = 'mb-4 w-28 h-28 flex items-center justify-center animate-float potential-color-neutral';
+
+            trainerPotentialEl.className = 'text-7xl md:text-8xl font-black leading-none text-gray-300';
+
+            trainerPotentialEl.textContent = '0';
+
+            potentialTextWrapperEl.style.opacity = '0'; 
+
+            abilitiesListEl.innerHTML = '';
+
+            abilityCountDisplayEl.textContent = 'Analizando Potencial...';
+
+            noAbilitiesEl.classList.add('hidden');
+
+            
+
+            generateButton.disabled = true;
+
+            generateButton.classList.add('opacity-50', 'cursor-not-allowed');
+
+            // 2. Animación Ruleta de Iconos
+
+            const potentials = [20, 35, 45, 55, 65, 75, 85];
+
+            const maxLoops = 10;
+
+            const finalStyle = getPotentialColorAndPhrase(pokemon.potential);
+
+            
+
+            for (let i = 0; i < maxLoops; i++) {
+
+                const randomPot = potentials[Math.floor(Math.random() * potentials.length)];
+
+                const style = getPotentialColorAndPhrase(randomPot);
+
+                potentialIconContainerEl.innerHTML = style.svg;
+
+                const svgElement = potentialIconContainerEl.querySelector('svg');
+
+                if(svgElement) {
+
+                    svgElement.classList.add(style.className); 
+
+                }
+
+                await delay(100 * speedFactor);
+
+            }
+
+            // Set icon final
+
+            potentialIconContainerEl.innerHTML = finalStyle.svg;
+
+            const finalSvg = potentialIconContainerEl.querySelector('svg');
+
+            if(finalSvg) finalSvg.classList.add(finalStyle.className);
+
+            // 3. Subida de números
+
+            let currentPot = 0;
+
+            const targetPot = pokemon.potential;
+
+            const baseStepDelay = 50 * speedFactor; 
+
+            
+
+            while(currentPot < targetPot) {
+
+                currentPot += 1;
+
+                trainerPotentialEl.textContent = currentPot;
+
+                const currentStyle = getPotentialColorAndPhrase(currentPot);
+
+                trainerPotentialEl.className = 'text-7xl md:text-8xl font-black leading-none ' + currentStyle.className;
+
+                
+
+                let finalStepDelay = baseStepDelay;
+
+                if(targetPot - currentPot < 5) finalStepDelay = baseStepDelay * 2.5;
+
+                await delay(finalStepDelay);
+
+            }
+
+            // 4. Mostrar Textos
+
+            potentialPhraseEl.textContent = finalStyle.phrase;
+
+            potentialPhraseEl.className = 'text-2xl md:text-3xl font-extrabold mt-4 mb-2 relative z-10 ' + finalStyle.className;
+
+            potentialTextWrapperEl.style.opacity = '1';
+
+            // 5. Animación de Habilidades
+
+            const count = pokemon.abilities.length;
+
+            
+
+            if (count > 0) {
+
+                abilityCountDisplayEl.textContent = `Analizando Habilidades...`;
+
+                for (let i = 0; i < pokemon.abilities.length; i++) {
+
+                    await delay(500 * speedFactor); 
+
+                    await animateAbilityCard(pokemon.abilities[i], speedFactor);
+
+                }
+
+                
+
+                const text = count === 1 ? `${count} Habilidad Descubierta` : `${count} Habilidades Descubiertas`;
+
+                abilityCountDisplayEl.textContent = `(${text})`;
+
+                abilityCountEl.textContent = count;
+
+            } else {
+
+                 await delay(500 * speedFactor);
+
+                 noAbilitiesEl.classList.remove('hidden');
+
+                 abilityCountDisplayEl.textContent = `(0 Habilidades Descubiertas)`;
+
+            }
+
+            generateButton.disabled = false;
+
+            generateButton.classList.remove('opacity-50', 'cursor-not-allowed');
+
+        }
+
+        async function animateAbilityCard(ability, speedFactor) {
+
+            const container = document.createElement('div');
+
+            container.className = `p-5 rounded-2xl shadow-xl border-t-4 bg-gray-200 transition duration-150 transform`;
+
+            container.innerHTML = `
+
+                <div class="flex items-center justify-between mb-3 border-b border-opacity-30 pb-2">
+
+                    <span class="text-2xl font-black text-gray-400">...</span>
+
+                    <span class="text-sm font-bold px-3 py-1 rounded-full uppercase ml-4 shadow-md bg-gray-300 text-gray-500">???</span>
+
+                </div>
+
+                <p class="text-sm font-medium text-gray-400">...</p>
+
+            `;
+
+            abilitiesListEl.appendChild(container);
+
+            container.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
+            const dummyStyles = [
+
+                { bg: 'bg-bad-mala', text: 'Mala' },
+
+                { bg: 'bg-good-legendary', text: 'Legendaria' },
+
+                { bg: 'bg-good-common', text: 'Común' },
+
+                { bg: 'bg-bad-destrozacarreras', text: 'Destroza' },
+
+                { bg: 'bg-good-elite', text: 'Élite' }
+
+            ];
+
+            
+
+            const loops = 8;
+
+            for(let i=0; i<loops; i++) {
+
+                const randomStyle = dummyStyles[Math.floor(Math.random() * dummyStyles.length)];
+
+                container.className = `p-5 rounded-2xl shadow-xl border-t-4 ${randomStyle.bg}`;
+
+                await delay(100 * speedFactor);
+
+            }
+
+            const finalStyles = getAbilityCardStyles(ability);
+
+            container.className = `p-5 rounded-2xl shadow-xl border-t-4 ${finalStyles.bgColor}`;
+
+            const badgeClass = finalStyles.isDarkBackground ? 'bg-white bg-opacity-30 text-white' : 'bg-black bg-opacity-20 text-gray-800';
+
+            
+
+            container.innerHTML = `
+
+                <div class="flex items-center justify-between mb-3 border-b border-opacity-30 pb-2">
+
+                    <span class="text-2xl font-black ${finalStyles.tierColor}" id="type-name-${ability.id}"></span>
+
+                    <span class="text-sm font-bold px-3 py-1 rounded-full uppercase ml-4 shadow-md ${badgeClass}">
+
+                        ${ability.tier}
+
+                    </span>
+
+                </div>
+
+                <p class="text-sm font-medium ${finalStyles.descriptionColor}" id="type-desc-${ability.id}"></p>
+
+            `;
+
+            const nameEl = container.querySelector(`#type-name-${ability.id}`);
+
+            const descEl = container.querySelector(`#type-desc-${ability.id}`);
+
+            
+
+            nameEl.classList.add('cursor-blink');
+
+            await typeWriter(nameEl, ability.name, 30 * speedFactor); 
+
+            nameEl.classList.remove('cursor-blink');
+
+            descEl.classList.add('cursor-blink');
+
+            await typeWriter(descEl, ability.description, 10 * speedFactor); 
+
+            descEl.classList.remove('cursor-blink');
+
+        }
+
+        function typeWriter(element, text, speed) {
+
+            return new Promise(resolve => {
+
+                let i = 0;
+
+                function type() {
+
+                    if (i < text.length) {
+
+                        element.textContent += text.charAt(i);
+
+                        i++;
+
+                        setTimeout(type, speed);
+
+                    } else {
+
+                        resolve();
+
+                    }
+
+                }
+
+                type();
+
+            });
+
+        }
+
+        // --- LÓGICA DE GESTIÓN (Habilidades) ---
+
+        const managedAbilitiesListEl = document.getElementById('managed-abilities-list');
+
+        const editModal = document.getElementById('edit-modal');
+
+        const editAbilityForm = document.getElementById('edit-ability-form');
+
+        const editTierSelect = document.getElementById('edit-tier');
+
+        const addAbilityBtn = document.getElementById('add-ability-btn');
+
+        const modalCancelBtn = document.getElementById('modal-cancel');
+
+        const confirmModal = document.getElementById('confirm-modal');
+
+        const confirmOkBtn = document.getElementById('confirm-ok');
+
+        const confirmCancelBtn = document.getElementById('confirm-cancel');
+
+        const managedAbilityCountEl = document.getElementById('managed-ability-count');
+
+        function renderManagementView() {
+
+            managedAbilityCountEl.textContent = managedAbilities.length;
+
+            managedAbilitiesListEl.innerHTML = '';
+
+            
+
+            if (managedAbilities.length === 0) {
+
+                managedAbilitiesListEl.innerHTML = '<p class="text-gray-500 italic text-center p-4 col-span-full">No hay habilidades registradas.</p>';
+
+                return;
+
+            }
+
+            managedAbilities.sort((a, b) => a.name.localeCompare(b.name)).forEach(ability => {
+
+                const { bgColor, tierColor, descriptionColor, isDarkBackground } = getAbilityCardStyles(ability);
+
+                const item = document.createElement('div');
+
+                item.className = `p-5 rounded-2xl shadow-xl border-t-4 ${bgColor}`;
+
+                item.innerHTML = `
+
+                    <div class="flex items-center justify-between mb-3 border-b border-opacity-30 pb-2">
+
+                        <span class="text-xl font-black ${tierColor}">${ability.name}</span>
+
+                        <span class="text-xs font-bold px-2 py-1 rounded-full uppercase ml-4 shadow-md ${isDarkBackground ? 'bg-white bg-opacity-30 text-white' : 'bg-black bg-opacity-20 text-gray-800'}">
+
+                            ${ability.tier}
+
+                        </span>
+
+                    </div>
+
+                    <p class="text-sm italic font-medium ${descriptionColor} mb-4 truncate">${ability.description}</p>
+
+                    <div class="flex space-x-2">
+
+                        <button data-id="${ability.id}" class="edit-btn flex-1 px-4 py-2 bg-secondary text-white font-medium rounded-lg hover:bg-blue-600 transition text-sm">
+
+                            Editar
+
+                        </button>
+
+                        <button data-id="${ability.id}" class="delete-btn flex-1 px-4 py-2 bg-red-500 text-white font-medium rounded-lg hover:bg-red-700 transition text-sm">
+
+                            Eliminar
+
+                        </button>
+
+                    </div>
+
+                `;
+
+                managedAbilitiesListEl.appendChild(item);
+
+            });
+
+            
+
+            document.querySelectorAll('.edit-btn').forEach(button => {
+
+                button.addEventListener('click', (e) => {
+
+                    const id = parseInt(e.currentTarget.dataset.id);
+
+                    const abilityToEdit = managedAbilities.find(a => a.id === id);
+
+                    if (abilityToEdit) {
+
+                        showEditModal(abilityToEdit);
+
+                    }
+
+                });
+
+            });
+
+            document.querySelectorAll('.delete-btn').forEach(button => {
+
+                button.addEventListener('click', (e) => {
+
+                    const id = parseInt(e.currentTarget.dataset.id);
+
+                    const abilityToDelete = managedAbilities.find(a => a.id === id);
+
+                    if (abilityToDelete) {
+
+                        showConfirmModal(`Eliminar: ${abilityToDelete.name}`, () => deleteAbility(id));
+
+                    }
+
+                });
+
+            });
+
+        }
+
+        function populateTierSelect() {
+
+            editTierSelect.innerHTML = ABILITY_TIERS.map(tier => 
+
+                `<option value="${tier}">${tier}</option>`
+
+            ).join('');
+
+        }
+
+        function showEditModal(ability = null) {
+
+            editModal.classList.remove('hidden');
+
+            const modalTitle = document.getElementById('modal-title');
+
+            
+
+            if (ability) {
+
+                modalTitle.textContent = `Editar Habilidad: ${ability.name}`;
+
+                document.getElementById('edit-ability-id').value = ability.id;
+
+                document.getElementById('edit-name').value = ability.name;
+
+                document.getElementById('edit-description').value = ability.description;
+
+                document.getElementById('edit-tier').value = ability.tier;
+
+            } else {
+
+                modalTitle.textContent = 'Añadir Nueva Habilidad';
+
+                document.getElementById('edit-ability-id').value = '';
+
+                document.getElementById('edit-name').value = '';
+
+                document.getElementById('edit-description').value = '';
+
+                document.getElementById('edit-tier').value = ABILITY_TIERS[0];
+
+            }
+
+        }
+
+        editAbilityForm.addEventListener('submit', (e) => {
+
+            e.preventDefault();
+
+            
+
+            const id = document.getElementById('edit-ability-id').value;
+
+            const name = document.getElementById('edit-name').value.trim();
+
+            const description = document.getElementById('edit-description').value.trim();
+
+            const tier = document.getElementById('edit-tier').value;
+
+            const isGood = ABILITY_TIERS_GOOD.includes(tier);
+
+            if (id) {
+
+                const index = managedAbilities.findIndex(a => a.id === parseInt(id));
+
+                if (index !== -1) {
+
+                    managedAbilities[index].name = name;
+
+                    managedAbilities[index].description = description;
+
+                    managedAbilities[index].tier = tier;
+
+                    managedAbilities[index].isGood = isGood;
+
+                    showMessage(`Habilidad "${name}" actualizada con éxito.`, 'bg-green-200 text-green-900');
+
+                }
+
+            } else {
+
+                if (managedAbilities.some(a => a.name.toLowerCase() === name.toLowerCase())) {
+
+                    showCustomAlert('Error de Creación', `La habilidad con el nombre "${name}" ya existe.`);
+
+                    return;
+
+                }
+
+                const newAbility = {
+
+                    id: nextAbilityId++,
+
+                    name: name,
+
+                    description: description,
+
+                    tier: tier,
+
+                    isGood: isGood
+
+                };
+
+                managedAbilities.push(newAbility);
+
+                showMessage(`Nueva habilidad "${name}" añadida con éxito.`, 'bg-green-200 text-green-900');
+
+            }
+
+            saveManagedAbilities(); 
+
+            editModal.classList.add('hidden');
+
+            renderManagementView(); 
+
+        });
+
+        modalCancelBtn.addEventListener('click', () => {
+
+            editModal.classList.add('hidden');
+
+            hideMessage();
+
+        });
+
+        function deleteAbility(id) {
+
+            const abilityName = managedAbilities.find(a => a.id === id)?.name || 'Habilidad';
+
+            managedAbilities = managedAbilities.filter(a => a.id !== id);
+
+            saveManagedAbilities(); 
+
+            showMessage(`Habilidad "${abilityName}" eliminada con éxito.`, 'bg-red-200 text-red-900');
+
+            renderManagementView();
+
+        }
+
+        // --- LÓGICA DE PROBABILIDADES ---
+
+        const probConfigForm = document.getElementById('prob-config-form');
+
+        const configCategorySelector = document.getElementById('config-category-selector');
+
+        const saveBtnCategoryName = document.getElementById('save-btn-category-name');
+
+        
+
+        const goodTiersInputsEl = document.getElementById('good-tiers-inputs');
+
+        const badTiersInputsEl = document.getElementById('bad-tiers-inputs');
+
+        const goodTiersSumEl = document.getElementById('good-tiers-sum');
+
+        const badTiersSumEl = document.getElementById('bad-tiers-sum');
+
+        const animSpeedInput = document.getElementById('anim-speed');
+
+        const animSpeedDisplay = document.getElementById('anim-speed-display');
+
+        animSpeedInput.addEventListener('input', (e) => {
+
+            const val = e.target.value;
+
+            animSpeedDisplay.textContent = `Velocidad: X${val}`;
+
+        });
+
+        
+
+        // Listener para cambiar de categoría en Ajustes
+
+        configCategorySelector.addEventListener('change', (e) => {
+
+            loadProbConfigUI(e.target.value);
+
+        });
+
+        function renderTierInputs(tiers, containerEl, sumEl, prefix, config) {
+
+            containerEl.innerHTML = '';
+
+            let currentSum = 0;
+
+            tiers.forEach(tier => {
+
+                const prob = config[tier] || 0;
+
+                currentSum += prob;
+
+                const inputId = `${prefix}-${tier.replace(/\s/g, '-')}`;
+
+                const inputContainer = document.createElement('div');
+
+                inputContainer.className = 'flex-1';
+
+                inputContainer.innerHTML = `
+
+                    <label for="${inputId}" class="block text-xs font-medium text-gray-700">${tier} (%):</label>
+
+                    <input type="number" id="${inputId}" min="0" max="100" name="${tier}" value="${prob}" required 
+
+                           class="tier-input mt-1 block w-full border-gray-300 rounded-lg shadow-sm focus:ring-secondary focus:border-secondary p-2">
+
+                `;
+
+                containerEl.appendChild(inputContainer);
+
+            });
+
+            sumEl.textContent = currentSum;
+
+            sumEl.classList.toggle('text-red-500', currentSum !== 100);
+
+            sumEl.classList.toggle('text-green-500', currentSum === 100);
+
+            containerEl.querySelectorAll('.tier-input').forEach(input => {
+
+                 input.addEventListener('input', () => updateTierSum(tiers, containerEl, sumEl, prefix));
+
+            });
+
+        }
+
+        
+
+        function updateTierSum(tiers, containerEl, sumEl, prefix) {
+
+            let currentSum = 0;
+
+            tiers.forEach(tier => {
+
+                const inputId = `${prefix}-${tier.replace(/\s/g, '-')}`;
+
+                const inputEl = document.getElementById(inputId);
+
+                if (inputEl) {
+
+                    currentSum += parseInt(inputEl.value) || 0;
+
+                }
+
+            });
+
+            sumEl.textContent = currentSum;
+
+            sumEl.classList.toggle('text-red-500', currentSum !== 100);
+
+            sumEl.classList.toggle('text-green-500', currentSum === 100);
+
+        }
+
+        // Cargar UI basada en la categoría seleccionada
+
+        function loadProbConfigUI(categoryName = 'Común') {
+
+            const config = GLOBAL_CATEGORY_CONFIGS[categoryName];
+
+            
+
+            // Actualizar Label del botón
+
+            saveBtnCategoryName.textContent = categoryName;
+
+            document.getElementById('pot-min').value = config.Potencial.min;
+
+            document.getElementById('pot-max').value = config.Potencial.max;
+
+            document.getElementById('roll-1').value = config.AbilityRolls[0];
+
+            document.getElementById('roll-2').value = config.AbilityRolls[1];
+
+            document.getElementById('roll-3').value = config.AbilityRolls[2];
+
+            document.getElementById('quality-good').value = config.QualityDistribution.Buena;
+
+            document.getElementById('quality-bad').value = config.QualityDistribution.Mala;
+
+            
+
+            animSpeedInput.value = config.AnimationSpeed || 3;
+
+            animSpeedInput.dispatchEvent(new Event('input'));
+
+            renderTierInputs(ABILITY_TIERS_GOOD, goodTiersInputsEl, goodTiersSumEl, 'good-tier', config.GoodTierDistribution);
+
+            renderTierInputs(ABILITY_TIERS_BAD, badTiersInputsEl, badTiersSumEl, 'bad-tier', config.BadTierDistribution);
+
+        }
+
+        
+
+        probConfigForm.addEventListener('submit', (e) => {
+
+            e.preventDefault();
+
+            const categoryToSave = configCategorySelector.value;
+
+            
+
+            const newConfig = {
+
+                Potencial: {},
+
+                AbilityRolls: [],
+
+                QualityDistribution: {},
+
+                GoodTierDistribution: {},
+
+                BadTierDistribution: {},
+
+                AnimationSpeed: 3
+
+            };
+
+            
+
+            const getInputValue = (id) => {
+
+                const el = document.getElementById(id);
+
+                if (!el || isNaN(parseInt(el.value))) throw new Error(`El valor para ${id} es inválido o faltante.`);
+
+                return parseInt(el.value);
+
+            };
+
+            try {
+
+                newConfig.Potencial.min = getInputValue('pot-min');
+
+                newConfig.Potencial.max = getInputValue('pot-max');
+
+                if (newConfig.Potencial.min > newConfig.Potencial.max) throw new Error('El Potencial Mínimo no puede ser mayor al Máximo.');
+
+                
+
+                newConfig.AbilityRolls = [getInputValue('roll-1'), getInputValue('roll-2'), getInputValue('roll-3')];
+
+                
+
+                newConfig.QualityDistribution.Buena = getInputValue('quality-good');
+
+                newConfig.QualityDistribution.Mala = getInputValue('quality-bad');
+
+                if (newConfig.QualityDistribution.Buena + newConfig.QualityDistribution.Mala !== 100) throw new Error('La suma de Prob. Buena y Mala debe ser 100%.');
+
+                newConfig.AnimationSpeed = parseInt(animSpeedInput.value);
+
+                let goodSum = 0;
+
+                ABILITY_TIERS_GOOD.forEach(tier => {
+
+                    const prob = getInputValue(`good-tier-${tier.replace(/\s/g, '-')}`);
+
+                    newConfig.GoodTierDistribution[tier] = prob;
+
+                    goodSum += prob;
+
+                });
+
+                if (goodSum !== 100) throw new Error(`La suma de Tiers BUENOS debe ser 100%.`);
+
+                let badSum = 0;
+
+                ABILITY_TIERS_BAD.forEach(tier => {
+
+                    const prob = getInputValue(`bad-tier-${tier.replace(/\s/g, '-')}`);
+
+                    newConfig.BadTierDistribution[tier] = prob;
+
+                    badSum += prob;
+
+                });
+
+                if (badSum !== 100) throw new Error(`La suma de Tiers MALOS debe ser 100%.`);
+
+                // Guardar en el objeto Global, en la key correcta
+
+                GLOBAL_CATEGORY_CONFIGS[categoryToSave] = newConfig;
+
+                saveGlobalConfig(); 
+
+                
+
+                showMessage(`Configuración para categoría "${categoryToSave}" guardada con éxito.`, 'bg-green-200 text-green-900');
+
+            } catch (error) {
+
+                 showCustomAlert('Error al Guardar', error.message);
+
+            }
+
+        });
+
+        // --- LÓGICA DE NAVEGACIÓN ---
+
+        const viewDiscovery = document.getElementById('view-discovery');
+
+        const viewManagement = document.getElementById('view-management');
+
+        const viewProbabilities = document.getElementById('view-probabilities'); 
+
+        
+
+        const tabDiscovery = document.getElementById('tab-discovery');
+
+        const tabManagement = document.getElementById('tab-management');
+
+        const tabProbabilities = document.getElementById('tab-probabilities'); 
+
+        function switchView(viewName) {
+
+            viewDiscovery.classList.add('hidden');
+
+            viewManagement.classList.add('hidden');
+
+            viewProbabilities.classList.add('hidden');
+
+            [tabDiscovery, tabManagement, tabProbabilities].forEach(tab => {
+
+                tab.classList.add('text-gray-500');
+
+                tab.classList.remove('text-primary'); 
+
+                if (tab.id !== `tab-${viewName}`) {
+
+                    tab.classList.add('hover:text-gray-800'); 
+
+                }
+
+            });
+
+            const targetView = document.getElementById(`view-${viewName}`);
+
+            const targetTab = document.getElementById(`tab-${viewName}`);
+
+            if (targetView && targetTab) {
+
+                targetView.classList.remove('hidden');
+
+                targetTab.classList.add('text-primary');
+
+                targetTab.classList.remove('text-gray-500', 'hover:text-gray-800');
+
+            }
+
+            if (viewName === 'management') renderManagementView(); 
+
+            else if (viewName === 'probabilities') {
+
+                // Cargar la config del selector actual
+
+                loadProbConfigUI(configCategorySelector.value);
+
+            }
+
+            hideMessage();
+
+        }
+
+        tabDiscovery.addEventListener('click', () => switchView('discovery'));
+
+        tabManagement.addEventListener('click', () => switchView('management'));
+
+        tabProbabilities.addEventListener('click', () => switchView('probabilities'));
+
+        addAbilityBtn.addEventListener('click', () => showEditModal(null));
+
+        function showMessage(text, classes) {
+
+            const messageArea = document.getElementById('message-area');
+
+            messageArea.innerHTML = text; 
+
+            messageArea.className = `mt-6 p-4 font-bold rounded-lg text-center ${classes}`;
+
+            messageArea.classList.remove('hidden');
+
+        }
+
+        function hideMessage() {
+
+            document.getElementById('message-area').classList.add('hidden');
+
+        }
+
+        function showCustomAlert(title, message) {
+
+            const existingModal = document.getElementById('custom-alert-modal');
+
+            if (existingModal) existingModal.remove();
+
+            const modal = document.createElement('div');
+
+            modal.id = 'custom-alert-modal';
+
+            modal.className = 'fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 p-4';
+
+            modal.innerHTML = `
+
+                <div class="bg-white p-8 rounded-xl shadow-2xl max-w-md w-full transform transition-all scale-100 border-t-4 border-primary">
+
+                    <h3 class="text-2xl font-bold mb-3 text-primary">${title}</h3>
+
+                    <p class="text-gray-700 mb-6">${message}</p>
+
+                    <button id="modal-close" class="w-full px-4 py-3 bg-secondary text-white font-bold rounded-lg hover:bg-blue-700 transition duration-150 shadow-md">
+
+                        Entendido
+
+                    </button>
+
+                </div>
+
+            `;
+
+            document.body.appendChild(modal);
+
+            document.getElementById('modal-close').addEventListener('click', () => modal.remove());
+
+        }
+
+        let confirmCallback = null;
+
+        function showConfirmModal(title, callback) {
+
+            document.getElementById('confirm-modal').classList.remove('hidden');
+
+            document.querySelector('#confirm-modal h3').textContent = title;
+
+            confirmCallback = callback;
+
+        }
+
+        confirmOkBtn.addEventListener('click', () => {
+
+            if (confirmCallback) confirmCallback();
+
+            confirmModal.classList.add('hidden');
+
+        });
+
+        confirmCancelBtn.addEventListener('click', () => {
+
+            confirmModal.classList.add('hidden');
+
+        });
+
+        generateButton.addEventListener('click', () => {
+
+            const displayMode = document.querySelector('input[name="display-mode"]:checked').value;
+
+            showMessage(`Iniciando escaneo...`, 'bg-blue-200 text-blue-900');
+
+            try {
+
+                if (managedAbilities.length === 0) {
+
+                     showCustomAlert('Error de Descubrimiento', 'No se puede iniciar el descubrimiento porque no hay habilidades registradas.');
+
+                     hideMessage();
+
+                     return;
+
+                }
+
+                const newPokemon = generatePokemon();
+
+                hideMessage();
+
+                
+
+                if (displayMode === 'fast') renderPokemon(newPokemon);
+
+                else animatePokemon(newPokemon);
+
+            } catch (error) {
+
+                console.error("Error durante la generación del pokemon:", error);
+
+                showCustomAlert('Error Crítico de Generación', error.message);
+
+            }
+
+        });
+
+        window.onload = function() {
+
+            loadGlobalConfig();
+
+            loadManagedAbilities();
+
+            populateTierSelect();
+
+            switchView('discovery'); 
+
+            // Cargar UI inicial
+
+            loadProbConfigUI(configCategorySelector.value); 
+
+        };
+
+    </script>
+
+</body>
+
+</html>
+
